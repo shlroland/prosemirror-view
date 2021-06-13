@@ -530,4 +530,13 @@ describe("Decoration drawing", () => {
     ist(view.dom.querySelectorAll(".bar").length, 1)
     ist(view.dom.querySelectorAll(".baz").length, 1)
   })
+
+  it("can handle nodeName decoration overlapping with classes", () => {
+    let view = tempEditor({
+      doc: doc(p("one two three")),
+      plugins: [decoPlugin([Decoration.inline(2, 13, {class: "foo"}),
+                            Decoration.inline(5, 8, {nodeName: "em"})])]
+    })
+    ist(view.dom.firstChild.innerHTML, 'o<span class="foo">ne </span><em class="foo">two</em><span class="foo"> thre</span>e')
+  })
 })

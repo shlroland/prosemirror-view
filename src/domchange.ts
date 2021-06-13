@@ -106,6 +106,13 @@ export function readDOMChange(view: EditorView, from: number, to: number, typeOv
 
   let sel = view.state.selection
   let parse = parseBetween(view, from, to)
+  // Chrome sometimes leaves the cursor before the inserted text when
+  // composing after a cursor wrapper. This moves it forward.
+  if (browser.chrome && view.cursorWrapper && parse.sel && parse.sel.anchor == view.cursorWrapper.deco.from) {
+    let text = view.cursorWrapper.deco.type.toDOM.nextSibling
+    let size = text && text.nodeValue ? text.nodeValue.length : 1
+    parse.sel = {anchor: parse.sel.anchor + size, head: parse.sel.anchor + size}
+  }
 
   let doc = view.state.doc, compare = doc.slice(parse.from, parse.to)
   let preferredPos, preferredSide: "start" | "end"
@@ -131,6 +138,11 @@ export function readDOMChange(view: EditorView, from: number, to: number, typeOv
     if (typeOver && sel instanceof TextSelection && !sel.empty && sel.$head.sameParent(sel.$anchor) &&
         !view.composing && !(parse.sel && parse.sel.anchor != parse.sel.head)) {
       change = {start: sel.from, endA: sel.to, endB: sel.to}
+    } else if ((browser.ios && view.lastIOSEnter > Date.now() - 225 || browser.android) &&
+               addedNodes.some(n => n.nodeName == "DIV" || n.nodeName == "P") &&
+               view.someProp("handleKeyDown", f => f(view, keyEvent(13, "Enter")))) {
+      view.lastIOSEnter = 0
+      return
     } else {
       if (parse.sel) {
         let sel = resolveSelection(view, view.state.doc, parse.sel)
